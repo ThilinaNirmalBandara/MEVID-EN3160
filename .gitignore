@@ -1,0 +1,9 @@
+.venv
+
+artifacts/
+*.pt
+*.npy
+*.pkl
+*.gif
+*.mp4
+D:/MEVID-main/mevid/
