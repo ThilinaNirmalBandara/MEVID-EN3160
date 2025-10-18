@@ -1,0 +1,123 @@
+Config:
+-----------------------------------------
+AUG:
+  RE_PROB: 0.0
+  SAMPLING_STRIDE: 4
+  SEQ_LEN: 8
+  TEMPORAL_SAMPLING_MODE: stride
+DATA:
+  DATASET: ccvid
+  DENSE_SAMPLING: False
+  HEIGHT: 256
+  NUM_INSTANCES: 4
+  NUM_WORKERS: 0
+  ROOT: C:/Users/VICTUS/Desktop/CVproject/MEVID-main/CAL/data/Mevid
+  SAMPLING_STEP: 64
+  TEST_BATCH: 64
+  TRAIN_BATCH: 8
+  WIDTH: 128
+EVAL_MODE: True
+GPU: 0
+LOSS:
+  CAL: cal
+  CLA_LOSS: crossentropy
+  CLA_M: 0.0
+  CLA_S: 16.0
+  CLOTHES_CLA_LOSS: cosface
+  EPSILON: 0.1
+  MOMENTUM: 0.0
+  PAIR_LOSS: triplet
+  PAIR_LOSS_WEIGHT: 0.0
+  PAIR_M: 0.3
+  PAIR_S: 16.0
+MODEL:
+  AP3D:
+    CONTRACTIVE_ATT: True
+    TEMPERATURE: 4
+  FEATURE_DIM: 2048
+  NAME: c2dres50
+  RES4_STRIDE: 1
+  RESUME: logs/ccvid/c2dres50-ce-cal/CAL_best_model.pth.tar
+OUTPUT: C:/Users/VICTUS/Desktop/CVproject/MEVID-main/CAL/logs\ccvid\c2dres50-ce-cal
+SEED: 1
+TAG: c2dres50-ce-cal
+TEST:
+  EVAL_STEP: 1
+  START_EVAL: 149
+TRAIN:
+  AMP: False
+  LR_SCHEDULER:
+    DECAY_RATE: 0.1
+    STEPSIZE: [40, 80, 120]
+  MAX_EPOCH: 150
+  OPTIMIZER:
+    LR: 0.00035
+    NAME: adam
+    WEIGHT_DECAY: 0.0005
+  START_EPOCH: 0
+  START_EPOCH_ADV: 50
+  START_EPOCH_CC: 50
+-----------------------------------------
+=> MEVID loaded
+Dataset statistics:
+  ---------------------------------------------
+  subset       | # ids | # tracklets | # clothes
+  ---------------------------------------------
+  train        |   104 |        6338 |       485
+  query        |    52 |         316 |       100
+  gallery      |    54 |        1438 |       113
+  ---------------------------------------------
+  total        |   158 |        8092 |       598
+  number of images per tracklet: 1 ~ 1000, average 592.6
+  ---------------------------------------------
+Initializing model: c2dres50
+Init model: 'c2dres50'
+Model size: 23.51213M
+Loading checkpoint from 'logs/ccvid/c2dres50-ce-cal/CAL_best_model.pth.tar'
+Evaluate only
+200/402
+400/402
+200/1922
+400/1922
+600/1922
+800/1922
+1000/1922
+1200/1922
+1400/1922
+1600/1922
+1800/1922
+Extracted features for query set, obtained torch.Size([316, 2048]) matrix
+Extracted features for gallery set, obtained torch.Size([1438, 2048]) matrix
+Extracting features complete in 44m 14s
+Distance computing in 0m 0s
+Computing CMC and mAP
+Overall Results ---------------------------------------------------
+top1:52.5% top5:66.8% top10:72.8% top20:80.7% mAP:27.0%
+-----------------------------------------------------------
+Using 0m 0s
+Computing CMC and mAP only for the same clothes setting
+28 query samples do not have groundtruth.
+Results ---------------------------------------------------
+top1:56.6% top5:70.8% top10:77.1% top20:85.4% mAP:38.9%
+-----------------------------------------------------------
+Computing CMC and mAP only for clothes-changing
+32 query samples do not have groundtruth.
+Results ---------------------------------------------------
+top1:3.5% top5:11.6% top10:14.8% top20:19.4% mAP:4.3%
+-----------------------------------------------------------
+Computing CMC and mAP only for the same locations setting
+Results ---------------------------------------------------
+top1:43.5% top5:56.2% top10:61.0% top20:70.0% mAP:24.6%
+-----------------------------------------------------------
+Computing CMC and mAP only for locations-changing
+Results ---------------------------------------------------
+top1:36.3% top5:49.2% top10:55.9% top20:61.0% mAP:21.5%
+-----------------------------------------------------------
+Computing CMC and mAP only for the same scales setting
+Results ---------------------------------------------------
+top1:32.7% top5:46.7% top10:52.9% top20:60.7% mAP:21.8%
+-----------------------------------------------------------
+Computing CMC and mAP only for scales-changing
+Results ---------------------------------------------------
+top1:46.6% top5:61.8% top10:68.0% top20:74.1% mAP:25.1%
+-----------------------------------------------------------
