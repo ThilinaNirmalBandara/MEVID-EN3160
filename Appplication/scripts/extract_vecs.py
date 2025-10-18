@@ -5,7 +5,6 @@ import json
 
 # ensure we can import config + package when running as: python scripts/parse_mevid.py
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 # scripts/extract_vecs.py
 from pathlib import Path
 from tqdm import tqdm

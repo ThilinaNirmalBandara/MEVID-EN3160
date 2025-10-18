@@ -1,5 +1,12 @@
 # scripts/eval_reid_video2video.py
-# This evaluates tracklet→tracklet retrieval (no text) as a sanity check.
+# This evaluates tracklet→tracklet retrieval (no text) as a sanity check.\
+
+import sys, os
+from pathlib import Path
+import json
+
+# ensure we can import config + package when running as: python scripts/parse_mevid.py
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json, pickle
 import numpy as np
 from pathlib import Path
