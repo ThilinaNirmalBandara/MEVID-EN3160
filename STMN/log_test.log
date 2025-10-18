@@ -1,0 +1,29 @@
+Computing CMC and mAP 
+Results ---------------------------------------------------
+Overall Results
+top1:38.9% top5:58.5% top10:66.8% top20:73.7% mAP:14.2%
+-----------------------------------------------------------
+Computing CMC and mAP only for the same clothes setting
+28 query samples do not have groundtruth.
+Results ---------------------------------------------------
+Same Clothes
+top1:68.1% top5:83.3% top10:87.5% top20:93.4% mAP:43.7%
+-----------------------------------------------------------
+Computing CMC and mAP only for clothes-changing
+32 query samples do not have groundtruth.
+Results ---------------------------------------------------
+Clothes Changing
+top1:1.4% top5:2.1% top10:3.9% top20:7.0% mAP:2.0%
+-----------------------------------------------------------
+Computing CMC and mAP only for the same locations setting
+27 query samples do not have groundtruth.
+Results ---------------------------------------------------
+Same Locations
+top1:33.2% top5:46.7% top10:54.0% top20:62.6% mAP:18.2%
+-----------------------------------------------------------
+Computing CMC and mAP only for locations-changing
+23 query samples do not have groundtruth.
+Results ---------------------------------------------------
+Locations Changing
+top1:32.8% top5:46.4% top10:54.3% top20:59.7% mAP:15.4%
+-----------------------------------------------------------
