@@ -7,3 +7,7 @@ artifacts/
 *.gif
 *.mp4
 D:/MEVID-main/mevid/
+
+
+# Ignore PDF file
+vision_project_guidance.pdf
