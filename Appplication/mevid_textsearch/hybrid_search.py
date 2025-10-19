@@ -7,8 +7,15 @@ from dataclasses import dataclass
 
 from .clip_utils import encode_text
 from .temporal_reid import VideoReIDExtractor
-from .sota_reid import SOTAReIDExtractor  # NEW: SOTA models
+from .sota_reid import SOTAReIDExtractor
+from .viewpoint_reid import (  # NEW: Import viewpoint models
+    PartBasedReIDModel,
+    MultiGranularityReIDModel,
+    PoseGuidedReIDModel,
+    EnsembleReIDExtractor
+)
 from .faiss_utils import load_index
+import torch
 
 @dataclass
 class SearchResult:
@@ -25,9 +32,9 @@ class SearchResult:
 
 class HybridSearchEngine:
     """
-    Two-stage hybrid search:
+    Two-stage hybrid search with viewpoint-aware ReID:
     1. CLIP text-to-image retrieval (coarse search)
-    2. Video ReID refinement (fine-grained matching)
+    2. Video ReID refinement (fine-grained matching with viewpoint robustness)
     """
     
     def __init__(
@@ -35,17 +42,29 @@ class HybridSearchEngine:
         artifacts_dir: Path,
         reid_model_path: Path = None,
         device: str = None,
-        reid_type: str = 'ap3d'  # ADD THIS PARAMETER (default='ap3d')
+        reid_type: str = 'ap3d',  # 'temporal', 'ap3d', 'transreid', 'fastreid', 'pcb', 'mgn', 'pose', 'ensemble'
+        ensemble_config: Dict[str, bool] = None  # NEW: Config for ensemble mode
     ):
         """
         Args:
             artifacts_dir: Directory containing FAISS index and metadata
             reid_model_path: Path to pretrained Video ReID model (optional)
             device: 'cuda' or 'cpu'
-            reid_type: ReID model type - 'temporal', 'ap3d', 'transreid', 'fastreid'  # ADD THIS
+            reid_type: ReID model type
+                - 'temporal': Original temporal attention model
+                - 'ap3d': AP3D (fast & accurate) [RECOMMENDED]
+                - 'transreid': Transformer-based (most accurate, slower)
+                - 'fastreid': Speed-optimized (fastest)
+                - 'pcb': Part-based (best for pose variations)
+                - 'mgn': Multi-granularity (best for occlusions)
+                - 'pose': Pose-guided attention (best for viewpoint changes)
+                - 'ensemble': Combined models (best overall robustness)
+            ensemble_config: Dict with keys 'use_pcb', 'use_mgn', 'use_pose'
+                            Only used when reid_type='ensemble'
         """
         self.artifacts_dir = Path(artifacts_dir)
-        self.reid_type = reid_type  # ADD THIS
+        self.reid_type = reid_type
+        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         
         # Load CLIP-based FAISS index
         print("[Hybrid] Loading CLIP index...")
@@ -58,28 +77,148 @@ class HybridSearchEngine:
         # Load CLIP features
         self.clip_features = np.load(self.artifacts_dir / "vecs_test.npy")
         
-        # Initialize Video ReID extractor based on type  # ADD THIS SECTION
+        # Initialize Video ReID extractor based on type
         print(f"[Hybrid] Initializing {reid_type.upper()} ReID model...")
         
         if reid_type == 'temporal':
             # Original temporal attention model
             self.reid_extractor = VideoReIDExtractor(
                 model_path=reid_model_path,
-                device=device
+                device=self.device
             )
-        else:
-            # SOTA models (ap3d, transreid, fastreid)
+        elif reid_type in ['ap3d', 'transreid', 'fastreid']:
+            # SOTA models
             self.reid_extractor = SOTAReIDExtractor(
                 model_type=reid_type,
                 model_path=reid_model_path,
-                device=device
+                device=self.device
             )
-        # END OF ADDED SECTION
+        elif reid_type == 'ensemble':
+            # NEW: Ensemble of viewpoint-aware models
+            if ensemble_config is None:
+                ensemble_config = {
+                    'use_pcb': True,
+                    'use_mgn': True,
+                    'use_pose': True
+                }
+            self.reid_extractor = EnsembleReIDExtractor(
+                use_pcb=ensemble_config.get('use_pcb', True),
+                use_mgn=ensemble_config.get('use_mgn', True),
+                use_pose=ensemble_config.get('use_pose', True),
+                device=self.device
+            )
+        elif reid_type in ['pcb', 'mgn', 'pose']:
+            # NEW: Individual viewpoint-aware models
+            self.reid_extractor = self._init_viewpoint_model(reid_type, reid_model_path)
+        else:
+            raise ValueError(f"Unknown reid_type: {reid_type}. Choose from: "
+                           "temporal, ap3d, transreid, fastreid, pcb, mgn, pose, ensemble")
         
         # Cache for ReID features
         self._reid_cache = {}
         
         print("[Hybrid] Ready!")
+    
+    def _init_viewpoint_model(self, model_type: str, model_path: Path = None):
+        """Initialize individual viewpoint-aware model"""
+        from .viewpoint_reid import ViewpointAugmentation
+        import torch.nn as nn
+        
+        # Create model
+        if model_type == 'pcb':
+            model = PartBasedReIDModel(num_parts=6, num_classes=None)
+        elif model_type == 'mgn':
+            model = MultiGranularityReIDModel(num_classes=None)
+        elif model_type == 'pose':
+            model = PoseGuidedReIDModel(num_classes=None, use_pose=False)
+        else:
+            raise ValueError(f"Unknown viewpoint model: {model_type}")
+        
+        # Load weights if available
+        if model_path and Path(model_path).exists():
+            state_dict = torch.load(model_path, map_location=self.device)
+            model.load_state_dict(state_dict, strict=False)
+            print(f"[Viewpoint] Loaded weights from {model_path}")
+        else:
+            print(f"[Viewpoint] Using ImageNet pretrained backbone")
+        
+        model.to(self.device)
+        model.eval()
+        
+        # Create wrapper class similar to other extractors
+        class ViewpointExtractor:
+            def __init__(self, model, device, model_type):
+                self.model = model
+                self.device = device
+                self.model_type = model_type
+                self.transform = ViewpointAugmentation(is_training=False)
+            
+            @torch.no_grad()
+            def extract_tracklet_feature(self, frame_paths: List[Path], max_frames=16) -> np.ndarray:
+                from PIL import Image
+                
+                # Sample frames
+                if len(frame_paths) > max_frames:
+                    indices = np.linspace(0, len(frame_paths)-1, max_frames, dtype=int)
+                    frame_paths = [frame_paths[i] for i in indices]
+                
+                # Load frames
+                frames = []
+                for fp in frame_paths:
+                    if not fp.exists():
+                        continue
+                    try:
+                        img = Image.open(fp).convert('RGB')
+                        frames.append(self.transform(img))
+                    except:
+                        continue
+                
+                if not frames:
+                    # Get feature dimension from model
+                    if hasattr(self.model, 'feat_dim'):
+                        feat_dim = self.model.feat_dim
+                    else:
+                        feat_dim = 2048
+                    
+                    # For PCB/MGN, feature is concatenated parts
+                    if isinstance(self.model, PartBasedReIDModel):
+                        feat_dim = feat_dim * 6
+                    elif isinstance(self.model, MultiGranularityReIDModel):
+                        feat_dim = feat_dim * 6
+                    
+                    return np.zeros(feat_dim, dtype=np.float32)
+                
+                # Pad frames if needed
+                while len(frames) < max_frames:
+                    frames.append(frames[-1].clone())
+                
+                # Stack frames: (T, C, H, W)
+                frames_tensor = torch.stack(frames[:max_frames]).to(self.device)
+                
+                # PCB and MGN expect (B, C, H, W) or (B, T, C, H, W)
+                # For single tracklet, we need to add batch dimension
+                # Shape: (1, T, C, H, W)
+                frames_tensor = frames_tensor.unsqueeze(0)
+                
+                # Extract feature
+                feat = self.model(frames_tensor)  # Returns (1, feat_dim) or (1, feat_dim*parts)
+                
+                # Handle different output shapes
+                if feat.dim() > 1:
+                    feat = feat.squeeze(0)  # Remove batch dimension: (feat_dim,)
+                
+                return feat.cpu().numpy()
+            
+            @torch.no_grad()
+            def extract_batch_features(self, tracklets: List[List[Path]], 
+                                      max_frames=16, batch_size=4) -> np.ndarray:
+                all_feats = []
+                for tracklet_paths in tracklets:
+                    feat = self.extract_tracklet_feature(tracklet_paths, max_frames)
+                    all_feats.append(feat)
+                return np.vstack(all_feats)
+        
+        return ViewpointExtractor(model, self.device, model_type)
     
     def _get_reid_feature(self, track_idx: int, mevid_root: Path) -> np.ndarray:
         """Get or compute ReID feature for a tracklet"""
@@ -125,8 +264,8 @@ class HybridSearchEngine:
         alpha: float = 0.6,
         use_reid_rerank: bool = True,
         diversity_penalty: float = 0.03,
-        reid_reference_topk: int = 3,  # NEW: Use top-K CLIP results as references
-        reid_weight_decay: float = 0.5  # NEW: Weight decay for lower-ranked references
+        reid_reference_topk: int = 3,
+        reid_weight_decay: float = 0.5
     ) -> List[SearchResult]:
         """
         Hybrid search: CLIP retrieval + Video ReID re-ranking
@@ -177,7 +316,7 @@ class HybridSearchEngine:
             return results[:topk_final]
         
         # Stage 2: Video ReID re-ranking with multiple references
-        print(f"[Stage 2] Video ReID re-ranking with top-{reid_reference_topk} references")
+        print(f"[Stage 2] {self.reid_type.upper()} ReID re-ranking with top-{reid_reference_topk} references")
         
         # Extract ReID features for top-K CLIP results as references
         reference_feats = []

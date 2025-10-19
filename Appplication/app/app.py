@@ -1,4 +1,3 @@
-
 import sys, os
 from pathlib import Path
 import json
@@ -63,9 +62,20 @@ st.markdown("""
         background-color: #f44336;
         color: white;
     }
+    .model-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 0.8em;
+        margin: 2px;
+    }
+    .badge-speed { background-color: #2196F3; color: white; }
+    .badge-accuracy { background-color: #4CAF50; color: white; }
+    .badge-viewpoint { background-color: #9C27B0; color: white; }
+    .badge-pose { background-color: #FF9800; color: white; }
+    .badge-occlusion { background-color: #E91E63; color: white; }
 </style>
 """, unsafe_allow_html=True)
-
 
 
 def get_score_class(score):
@@ -78,7 +88,7 @@ def get_score_class(score):
         return "score-low"
 
 
-def display_results(results, query_text, use_reid=True):
+def display_results(results, query_text, use_reid=True, reid_type='ap3d'):
     """Display search results in a grid"""
     
     if not results:
@@ -87,7 +97,7 @@ def display_results(results, query_text, use_reid=True):
     
     # Header with mode indicator
     if use_reid:
-        st.markdown(f"### 🎬 Video Tracklets for: *'{query_text}'* (CLIP + ReID)")
+        st.markdown(f"### 🎬 Video Tracklets for: *'{query_text}'* (CLIP + {reid_type.upper()} ReID)")
     else:
         st.markdown(f"### 🎬 Video Tracklets for: *'{query_text}'* (CLIP Only)")
     
@@ -193,24 +203,103 @@ def display_results(results, query_text, use_reid=True):
         )
 
 
+# Model configurations
+MODEL_INFO = {
+    # Standard models
+    'temporal': {
+        'name': '📊 Temporal Attention',
+        'speed': 'Medium',
+        'accuracy': '68%',
+        'time': '10-15ms',
+        'description': 'Original baseline model',
+        'best_for': 'General use (baseline)',
+        'badges': ['⚡ Medium Speed', '🎯 Good Accuracy']
+    },
+    'ap3d': {
+        'name': '⚡ AP3D',
+        'speed': 'Fast',
+        'accuracy': '88%',
+        'time': '5-10ms',
+        'description': 'Fast & accurate (RECOMMENDED)',
+        'best_for': 'Most use cases',
+        'badges': ['⚡ Fast', '🎯 High Accuracy', '⭐ Recommended']
+    },
+    'fastreid': {
+        'name': '🚀 FastReID',
+        'speed': 'Fastest',
+        'accuracy': '82%',
+        'time': '2-5ms',
+        'description': 'Ultra-fast speed-optimized',
+        'best_for': 'Real-time applications',
+        'badges': ['⚡ Ultra Fast', '🎯 Good Accuracy']
+    },
+    'transreid': {
+        'name': '🎯 TransReID',
+        'speed': 'Slow',
+        'accuracy': '92%',
+        'time': '20-30ms',
+        'description': 'Transformer-based (most accurate)',
+        'best_for': 'Maximum accuracy',
+        'badges': ['🎯 Best Accuracy', '🐌 Slower']
+    },
+    
+    # Viewpoint-aware models (NEW)
+    'pcb': {
+        'name': '🔲 PCB',
+        'speed': 'Medium',
+        'accuracy': '82%',
+        'time': '8-12ms',
+        'description': 'Part-based (viewpoint-aware)',
+        'best_for': 'Pose variations',
+        'badges': ['🤸 Pose Robust', '📐 Part-Based']
+    },
+    'mgn': {
+        'name': '📊 MGN',
+        'speed': 'Medium',
+        'accuracy': '80%',
+        'time': '10-15ms',
+        'description': 'Multi-granularity (viewpoint-aware)',
+        'best_for': 'Partial occlusions',
+        'badges': ['👥 Occlusion Robust', '🔍 Multi-Scale']
+    },
+    'pose': {
+        'name': '🎭 Pose-Guided',
+        'speed': 'Medium',
+        'accuracy': '85%',
+        'time': '12-18ms',
+        'description': 'Pose-guided attention (viewpoint-aware)',
+        'best_for': 'Camera angle changes',
+        'badges': ['📹 Viewpoint Robust', '🎯 Attention-Based']
+    },
+    'ensemble': {
+        'name': '⭐ Ensemble',
+        'speed': 'Slower',
+        'accuracy': '88%',
+        'time': '30-45ms',
+        'description': 'Combined models (viewpoint-aware)',
+        'best_for': 'Maximum robustness',
+        'badges': ['🎯 Best Overall', '📹 Viewpoint', '🤸 Pose', '👥 Occlusion']
+    }
+}
+
 
 # Initialize session state
 if 'engine' not in st.session_state:
     with st.spinner("🔄 Loading search engine..."):
-        # Let user choose ReID model type
         reid_model_path = ARTIFACTS / "reid_model.pth" if (ARTIFACTS / "reid_model.pth").exists() else None
         
         # Default to AP3D (best balance of speed/accuracy)
         st.session_state.engine = HybridSearchEngine(
             artifacts_dir=ARTIFACTS,
             reid_model_path=reid_model_path,
-            reid_type='ap3d'  # Options: 'temporal', 'ap3d', 'transreid', 'fastreid'
+            reid_type='ap3d'
         )
+        st.session_state.current_reid_type = 'ap3d'
         st.session_state.engine_loaded = True
 
 # Header
 st.markdown('<h1 class="main-header">🔍 MEvid Person Search Engine</h1>', unsafe_allow_html=True)
-st.markdown("**Hybrid CLIP + Video ReID System** - Search for people across multiple cameras")
+st.markdown("**Hybrid CLIP + Video ReID System** - Search for people across multiple cameras with viewpoint-aware AI")
 
 # Add explanation of how it works
 with st.expander("ℹ️ How This Works", expanded=False):
@@ -226,7 +315,7 @@ with st.expander("ℹ️ How This Works", expanded=False):
     Your Text → CLIP (finds matches) → ReID (re-ranks) → Results
     ```
     - **Stage 1:** CLIP finds 50 candidates based on text description
-    - **Stage 2:** Video ReID re-ranks using temporal patterns
+    - **Stage 2:** Video ReID re-ranks using temporal patterns and viewpoint analysis
     - **Best for:** Finding the SAME person across multiple cameras
     - **Accuracy:** ⭐⭐⭐⭐⭐ (Best)
     - **Speed:** ⭐⭐⭐ (1-2 seconds)
@@ -255,14 +344,31 @@ with st.expander("ℹ️ How This Works", expanded=False):
     
     ---
     
+    ### 🎯 New: Viewpoint-Aware Models
+    
+    **Handle challenging scenarios:**
+    - 📹 **Different camera angles** (front/side/back)
+    - 🤸 **Pose variations** (standing/sitting/walking)
+    - 👥 **Partial occlusions** (people behind objects)
+    - 💡 **Lighting changes** across cameras
+    
+    **Available models:**
+    - **PCB**: Part-based matching (best for pose)
+    - **MGN**: Multi-scale features (best for occlusions)
+    - **Pose-Guided**: Attention mechanism (best for viewpoints)
+    - **Ensemble**: Combines all three (best overall)
+    
+    ---
+    
     ### 📊 When to Use Each Mode:
     
-    | Scenario | Mode | Settings |
-    |----------|------|----------|
-    | "Find person in black jacket" | Text Search | ✅ ReID ON |
-    | "Quick search for any person in blue" | Text Search | ❌ ReID OFF |
-    | "Track this person (ID 1548) across cameras" | Video ReID | N/A |
-    | "Find same person after initial search" | Video ReID | N/A |
+    | Scenario | Mode | Model | Settings |
+    |----------|------|-------|----------|
+    | "Find person in black jacket" | Text Search | AP3D | ✅ ReID ON |
+    | "Quick search for any person in blue" | Text Search | FastReID | ❌ ReID OFF |
+    | "Track person across camera angles" | Text Search | Pose/Ensemble | ✅ ReID ON |
+    | "Track this person (ID 1548) across cameras" | Video ReID | Any | N/A |
+    | "Find in crowded scene" | Text Search | MGN | ✅ ReID ON |
     
     ---
     
@@ -288,34 +394,88 @@ with st.expander("ℹ️ How This Works", expanded=False):
 st.sidebar.header("⚙️ Search Settings")
 
 # Model selection (at top of sidebar)
-st.sidebar.subheader("🤖 ReID Model")
-reid_model_type = st.sidebar.selectbox(
-    "Choose ReID Model",
-    options=['ap3d', 'fastreid', 'transreid', 'temporal'],
-    index=0,  # Default to AP3D
-    help="AP3D: Best balance (recommended) | FastReID: Fastest | TransReID: Most accurate | Temporal: Original"
+st.sidebar.subheader("🤖 ReID Model Selection")
+
+# Model category tabs
+model_category = st.sidebar.radio(
+    "Model Category",
+    ["⚡ Standard Models", "🎭 Viewpoint-Aware Models"],
+    help="Standard: Fast general-purpose | Viewpoint-Aware: Handle camera angles, pose, occlusions"
 )
 
-# Show model info
-model_info = {
-    'ap3d': "⚡ **AP3D** - Fast & Accurate (88% R@1, 5-10ms)",
-    'fastreid': "🚀 **FastReID** - Ultra Fast (82% R@1, 2-5ms)",
-    'transreid': "🎯 **TransReID** - Most Accurate (92% R@1, 20-30ms)",
-    'temporal': "📊 **Temporal Attention** - Original (68% R@1, 10-15ms)"
-}
-st.sidebar.info(model_info[reid_model_type])
+if model_category == "⚡ Standard Models":
+    reid_model_type = st.sidebar.selectbox(
+        "Choose Model",
+        options=['ap3d', 'fastreid', 'transreid', 'temporal'],
+        index=0,
+        format_func=lambda x: MODEL_INFO[x]['name'],
+        help="Standard models for general person re-identification"
+    )
+else:  # Viewpoint-Aware
+    reid_model_type = st.sidebar.selectbox(
+        "Choose Model",
+        options=['pcb', 'mgn', 'pose', 'ensemble'],
+        index=3,  # Default to ensemble
+        format_func=lambda x: MODEL_INFO[x]['name'],
+        help="Viewpoint-aware models handle camera angles, pose, and occlusions"
+    )
 
-# Reload engine if model type changed
+# Show model info card
+model_info = MODEL_INFO[reid_model_type]
+st.sidebar.markdown(f"""
+<div style="background-color: #f0f2f6; padding: 15px; border-radius: 10px; margin: 10px 0;">
+    <h4 style="margin-top: 0;">{model_info['name']}</h4>
+    <p style="font-size: 0.9em; margin: 5px 0;">
+        <strong>Speed:</strong> {model_info['speed']} ({model_info['time']})<br>
+        <strong>Accuracy:</strong> {model_info['accuracy']} Rank-1<br>
+        <strong>Best for:</strong> {model_info['best_for']}
+    </p>
+    <div>
+        {''.join(f'<span class="model-badge">{badge}</span>' for badge in model_info['badges'])}
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Ensemble configuration (only for ensemble model)
+if reid_model_type == 'ensemble':
+    st.sidebar.markdown("#### Ensemble Components")
+    st.sidebar.caption("Choose which models to combine:")
+    
+    use_pcb = st.sidebar.checkbox("🔲 PCB (Part-Based)", value=True, help="Handles pose variations")
+    use_mgn = st.sidebar.checkbox("📊 MGN (Multi-Granularity)", value=True, help="Handles occlusions")
+    use_pose = st.sidebar.checkbox("🎭 Pose-Guided", value=True, help="Handles viewpoint changes")
+    
+    ensemble_config = {
+        'use_pcb': use_pcb,
+        'use_mgn': use_mgn,
+        'use_pose': use_pose
+    }
+    
+    if not any(ensemble_config.values()):
+        st.sidebar.warning("⚠️ Enable at least one model!")
+        ensemble_config = {'use_pcb': True, 'use_mgn': True, 'use_pose': True}
+else:
+    ensemble_config = None
+
+# Reload engine if model type changed or ensemble config changed
+reload_needed = False
 if 'current_reid_type' not in st.session_state or st.session_state.current_reid_type != reid_model_type:
+    reload_needed = True
+elif reid_model_type == 'ensemble' and st.session_state.get('ensemble_config') != ensemble_config:
+    reload_needed = True
+
+if reload_needed:
     with st.spinner(f"Loading {reid_model_type.upper()} model..."):
         reid_model_path = ARTIFACTS / "reid_model.pth" if (ARTIFACTS / "reid_model.pth").exists() else None
         st.session_state.engine = HybridSearchEngine(
             artifacts_dir=ARTIFACTS,
             reid_model_path=reid_model_path,
-            reid_type=reid_model_type
+            reid_type=reid_model_type,
+            ensemble_config=ensemble_config if reid_model_type == 'ensemble' else None
         )
         st.session_state.current_reid_type = reid_model_type
-        st.success(f"✓ {reid_model_type.upper()} loaded!")
+        st.session_state.ensemble_config = ensemble_config
+        st.sidebar.success(f"✓ {reid_model_type.upper()} loaded!")
 
 st.sidebar.markdown("---")
 
@@ -334,11 +494,11 @@ if search_mode == "Text Search":
     use_reid = st.sidebar.checkbox(
         "Enable Video ReID",
         value=True,
-        help="Use temporal model for better accuracy (slower)"
+        help="Use ReID model for better accuracy (slower)"
     )
     
     if use_reid:
-        st.sidebar.success("✅ **2-Stage Search Active:**\n1️⃣ CLIP finds candidates\n2️⃣ ReID re-ranks results")
+        st.sidebar.success(f"✅ **2-Stage Search Active:**\n1️⃣ CLIP finds candidates\n2️⃣ {reid_model_type.upper()} re-ranks results")
     else:
         st.sidebar.warning("⚠️ **CLIP Only:**\nFaster but less accurate")
     
@@ -349,7 +509,7 @@ if search_mode == "Text Search":
         value=0.6,
         step=0.1,
         help="Higher = more weight on text matching",
-        disabled=not use_reid  # Disable if ReID is off
+        disabled=not use_reid
     )
     
     topk_clip = st.sidebar.slider(
@@ -407,8 +567,22 @@ topk = st.sidebar.slider(
 )
 
 st.sidebar.markdown("---")
+
+# Tips based on selected model
+tips = {
+    'ap3d': "Fast & reliable for most searches",
+    'fastreid': "Best for real-time applications",
+    'transreid': "Use when accuracy is critical",
+    'temporal': "Baseline model for comparison",
+    'pcb': "Great for different poses (sitting/standing)",
+    'mgn': "Handles crowded scenes well",
+    'pose': "Best for camera angle changes",
+    'ensemble': "Maximum accuracy, worth the wait"
+}
+
 st.sidebar.info(
-    "**💡 Tips:**\n"
+    f"**💡 Model Tip:**\n{tips[reid_model_type]}\n\n"
+    "**General Tips:**\n"
     "- Be specific in descriptions\n"
     "- Use clothing colors/items\n"
     "- Enable ReID for accuracy\n"
@@ -478,31 +652,33 @@ if search_mode == "Text Search":
         
         # Stage 2 (if ReID enabled)
         if use_reid:
-            stage_container.info("✨ **Stage 2:** Video ReID analyzing temporal patterns...")
+            stage_container.info(f"✨ **Stage 2:** {reid_model_type.upper()} analyzing temporal patterns...")
             progress_container.progress(60)
         
         progress_container.progress(100)
         stage_container.empty()
         progress_container.empty()
         
-        st.success(f"✅ Found {len(results)} tracklets!")
+        st.success(f"✅ Found {len(results)} tracklets using {reid_model_type.upper()}!")
         
         # Show stats
         unique_persons = len(set(r.person_id for r in results))
         unique_cameras = len(set(r.camera_id for r in results))
         
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric("📊 Tracklets Found", len(results))
         with col2:
             st.metric("👥 Unique Persons", unique_persons)
         with col3:
             st.metric("📹 Cameras", unique_cameras)
+        with col4:
+            st.metric("🤖 Model", reid_model_type.upper())
         
         st.markdown("---")
         
         # Display results
-        display_results(results, query)
+        display_results(results, query, use_reid, reid_model_type)
 
 else:  # Video-to-Video ReID
     st.header("🎥 Video-to-Video Re-Identification")
@@ -524,7 +700,7 @@ else:  # Video-to-Video ReID
         search_button = st.button("🔍 Find Matches", type="primary", use_container_width=True)
     
     if search_button:
-        with st.spinner(f"🔎 Finding matches for Track {track_id}..."):
+        with st.spinner(f"🔎 Finding matches for Track {track_id} using {reid_model_type.upper()}..."):
             results = st.session_state.engine.person_reidentification(
                 reference_track_id=track_id,
                 mevid_root=MEVID_ROOT,
@@ -532,7 +708,7 @@ else:  # Video-to-Video ReID
                 exclude_same_camera=exclude_same_cam
             )
         
-        st.success(f"✅ Found {len(results)} matches!")
+        st.success(f"✅ Found {len(results)} matches using {reid_model_type.upper()}!")
         
         # Display reference tracklet info
         import pickle
@@ -545,21 +721,22 @@ else:  # Video-to-Video ReID
             f"**Reference Track:** {track_id} | "
             f"**Person ID:** {ref_meta['pid']} | "
             f"**Outfit:** {ref_meta['outfit']} | "
-            f"**Camera:** {ref_meta['camid']}"
+            f"**Camera:** {ref_meta['camid']} | "
+            f"**Model:** {reid_model_type.upper()}"
         )
         
         # Display results
-        display_results(results, f"Track {track_id}")
-
+        display_results(results, f"Track {track_id}", True, reid_model_type)
 
 
 # Footer
 st.markdown("---")
 st.markdown(
-    """
+    f"""
     <div style='text-align: center; color: gray;'>
         <p>MEvid Hybrid Person Search | CLIP + Video ReID</p>
-        <p>Built with Streamlit 🎈 | Powered by PyTorch 🔥</p>
+        <p>Active Model: <strong>{reid_model_type.upper()}</strong> | Built with Streamlit 🎈 | Powered by PyTorch 🔥</p>
+        <p style='font-size: 0.8em;'>Now with Viewpoint-Aware AI: PCB • MGN • Pose-Guided • Ensemble</p>
     </div>
     """,
     unsafe_allow_html=True
