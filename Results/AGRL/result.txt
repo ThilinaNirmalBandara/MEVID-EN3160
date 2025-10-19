@@ -1,0 +1,175 @@
+(venvAGRL) PS D:\MEVID-main\mevid-checkout\AGRL> python train_vidreid_xent_htri.py -d mevid -a vmgn --evaluate --seq-len 8 --test-sample evenly --num-split 4 --pyramid-part --num-gb 2 --learn-graph --gpu-devices 0 --dist-metric cosine --load-weights D:\MEVID-main\mevid-checkout\AGRL\AGRL_best_model.pth.tar --save-dir log/mevid
+>> 
+D:\MEVID-main\mevid-checkout\AGRL\torchreid\metrics\rank.py:18: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
+  warnings.warn(
+==========
+Args:Namespace(root='../../mevid/', dataset='mevid', workers=8, height=256, width=128, seq_len=8, split_id=0, train_batch=32, test_batch=5, num_instances=4, train_sample='restricted', test_sample='evenly', train_sampler='RandomIdentitySampler', optim='adam', margin=0.3, soft_margin=False, lambda_xent=1, lambda_htri=1, label_smooth=False, max_epoch=600, lr=0.0003, stepsize=[200, 400], gamma=0.1, weight_decay=0.0005, zero_wd=-1, warmup=False, arch='vmgn', pool='avg', last_stride=1, num_split=4, num_parts=3, num_gb=2, num_scale=1, pyramid_part=True, use_pose=False, learn_graph=True, knn=16, consistent_loss=False, bnneck=False, flip_aug=False, rand_erase=False, rand_crop=False, misalign_aug=False, visualize_ranks=False, dist_metric='cosine', re_rank=False, resume='', load_weights='D:\\MEVID-main\\mevid-checkout\\AGRL\\AGRL_best_model.pth.tar', evaluate=True, eval_step=-1, start_eval=0, use_cpu=False, gpu_devices='0', use_avai_gpus=False, print_freq=200, print_last=False, seed=255, save_dir='log/mevid')
+==========
+Wed Oct  1 19:38:38 2025 Currently using GPU 0
+Wed Oct  1 19:38:38 2025 Initializing dataset mevid
+Wed Oct  1 19:38:49 2025 => MEVID loaded
+Wed Oct  1 19:38:49 2025 Dataset statistics:
+Wed Oct  1 19:38:49 2025   ------------------------------
+Wed Oct  1 19:38:49 2025   subset   | # ids | # tracklets
+Wed Oct  1 19:38:49 2025   ------------------------------
+Wed Oct  1 19:38:49 2025   train    |   104 |     6338
+Wed Oct  1 19:38:49 2025   query    |    52 |      316
+Wed Oct  1 19:38:49 2025   gallery  |    54 |     1438
+Wed Oct  1 19:38:49 2025   ------------------------------
+Wed Oct  1 19:38:49 2025   total    |   158 |     8092
+Wed Oct  1 19:38:49 2025   number of images per tracklet: 1 ~ 1000, average 592.6
+Wed Oct  1 19:38:49 2025   ------------------------------
+Wed Oct  1 19:38:49 2025 Transform:
+Wed Oct  1 19:38:49 2025 + Resize to (256 x 128)
+Wed Oct  1 19:38:49 2025 + ToTensor
+Wed Oct  1 19:38:49 2025 + Normalize with mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+Wed Oct  1 19:38:49 2025 Initializing model: vmgn
+Wed Oct  1 19:38:49 2025 Initialized model with pretrained weights from https://download.pytorch.org/models/resnet50-19c8e357.pth
+Wed Oct  1 19:38:50 2025   -------------------------------------------------------
+Wed Oct  1 19:38:50 2025   Model complexity with input size torch.Size([1, 8, 3, 256, 128])
+Wed Oct  1 19:38:50 2025   -------------------------------------------------------
+Wed Oct  1 19:38:50 2025   Conv2d (params=38,397,120, flops=47,726,985,216)
+Wed Oct  1 19:38:50 2025   BatchNorm2d (params=75,648, flops=311,427,072)
+Wed Oct  1 19:38:50 2025   ReLU (params=0, flops=66,322,432)
+Wed Oct  1 19:38:50 2025   MaxPool2d (params=0, flops=8,388,608)
+Wed Oct  1 19:38:50 2025   AdaptiveAvgPool3d (params=0, flops=2,097,152)
+Wed Oct  1 19:38:50 2025   BatchNorm1d (params=16,384, flops=933,888)
+Wed Oct  1 19:38:50 2025   AdaptiveAvgPool2d (params=0, flops=6,291,456)
+Wed Oct  1 19:38:50 2025   Linear (params=8,388,608, flops=469,762,048)
+Wed Oct  1 19:38:50 2025   LeakyReLU (params=0, flops=688,128)
+Wed Oct  1 19:38:50 2025   -------------------------------------------------------
+Wed Oct  1 19:38:50 2025   Total (params=46,877,760, flops=48,592,896,000)
+Wed Oct  1 19:38:50 2025   -------------------------------------------------------
+Wed Oct  1 19:38:50 2025 Model complexity: params=46,877,760 flops=48,592,896,000
+Wed Oct  1 19:38:50 2025 Loaded pretrained weights from 'D:\MEVID-main\mevid-checkout\AGRL\AGRL_best_model.pth.tar'
+Wed Oct  1 19:38:50 2025 Evaluate only
+D:\MEVID-main\mevid-checkout\AGRL\torchreid\metrics\rank.py:18: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
+  warnings.warn(
+D:\MEVID-main\mevid-checkout\AGRL\torchreid\metrics\rank.py:18: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
+  warnings.warn(
+D:\MEVID-main\mevid-checkout\AGRL\torchreid\metrics\rank.py:18: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
+  warnings.warn(
+D:\MEVID-main\mevid-checkout\AGRL\torchreid\metrics\rank.py:18: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
+  warnings.warn(
+D:\MEVID-main\mevid-checkout\AGRL\torchreid\metrics\rank.py:18: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
+  warnings.warn(
+D:\MEVID-main\mevid-checkout\AGRL\torchreid\metrics\rank.py:18: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
+  warnings.warn(
+D:\MEVID-main\mevid-checkout\AGRL\torchreid\metrics\rank.py:18: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
+  warnings.warn(
+D:\MEVID-main\mevid-checkout\AGRL\torchreid\metrics\rank.py:18: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
+  warnings.warn(
+Wed Oct  1 19:39:19 2025 Extracted features for query set, obtained 316-by-4096 matrix
+D:\MEVID-main\mevid-checkout\AGRL\torchreid\metrics\rank.py:18: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
+  warnings.warn(
+D:\MEVID-main\mevid-checkout\AGRL\torchreid\metrics\rank.py:18: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
+  warnings.warn(
+D:\MEVID-main\mevid-checkout\AGRL\torchreid\metrics\rank.py:18: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
+  warnings.warn(
+D:\MEVID-main\mevid-checkout\AGRL\torchreid\metrics\rank.py:18: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
+  warnings.warn(
+D:\MEVID-main\mevid-checkout\AGRL\torchreid\metrics\rank.py:18: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
+  warnings.warn(
+D:\MEVID-main\mevid-checkout\AGRL\torchreid\metrics\rank.py:18: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
+  warnings.warn(
+D:\MEVID-main\mevid-checkout\AGRL\torchreid\metrics\rank.py:18: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
+  warnings.warn(
+D:\MEVID-main\mevid-checkout\AGRL\torchreid\metrics\rank.py:18: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
+  warnings.warn(
+Wed Oct  1 19:40:04 2025 Extracted features for gallery set, obtained 1438-by-4096 matrix
+Wed Oct  1 19:40:04 2025 ==> BatchTime(s)/BatchSize(img): 0.020/40
+Wed Oct  1 19:40:04 2025 Computing distance matrix with metric=cosine ...
+Wed Oct  1 19:40:04 2025 Computing CMC and mAP
+Wed Oct  1 19:40:04 2025 Overall Results ----------
+Wed Oct  1 19:40:04 2025 mAP: 18.88%
+Wed Oct  1 19:40:04 2025 CMC curve
+Wed Oct  1 19:40:04 2025 Rank-1  : 48.42%
+Wed Oct  1 19:40:04 2025 Rank-5  : 62.34%
+Wed Oct  1 19:40:04 2025 Rank-10 : 69.94%
+Wed Oct  1 19:40:04 2025 Rank-20 : 78.16%
+Wed Oct  1 19:40:04 2025 ------------------
+Wed Oct  1 19:40:04 2025 28 query samples do not have groundtruth.
+Wed Oct  1 19:40:04 2025 SC Results ----------
+Wed Oct  1 19:40:04 2025 mAP: 32.32%
+Wed Oct  1 19:40:04 2025 CMC curve
+Wed Oct  1 19:40:04 2025 Rank-1  : 51.39%
+Wed Oct  1 19:40:04 2025 Rank-5  : 64.24%
+Wed Oct  1 19:40:04 2025 Rank-10 : 72.92%
+Wed Oct  1 19:40:04 2025 Rank-20 : 81.60%
+Wed Oct  1 19:40:04 2025 ------------------
+Wed Oct  1 19:40:05 2025 32 query samples do not have groundtruth.
+Wed Oct  1 19:40:05 2025 CC Results ----------
+Wed Oct  1 19:40:05 2025 mAP: 5.74%
+Wed Oct  1 19:40:05 2025 CMC curve
+Wed Oct  1 19:40:05 2025 Rank-1  : 4.93%
+Wed Oct  1 19:40:05 2025 Rank-5  : 15.85%
+Wed Oct  1 19:40:05 2025 Rank-10 : 19.01%
+Wed Oct  1 19:40:05 2025 Rank-20 : 26.06%
+Wed Oct  1 19:40:05 2025 ------------------
+Wed Oct  1 19:40:05 2025 21 query samples do not have groundtruth.
+Wed Oct  1 19:40:05 2025 Location Results (same locations)----------
+Wed Oct  1 19:40:05 2025 mAP: 17.97%
+Wed Oct  1 19:40:05 2025 CMC curve
+Wed Oct  1 19:40:05 2025 Rank-1  : 30.17%
+Wed Oct  1 19:40:05 2025 Rank-5  : 44.41%
+Wed Oct  1 19:40:05 2025 Rank-10 : 49.15%
+Wed Oct  1 19:40:05 2025 Rank-20 : 58.98%
+Wed Oct  1 19:40:05 2025 ------------------
+Wed Oct  1 19:40:05 2025 3 query samples do not have groundtruth.
+Wed Oct  1 19:40:05 2025 Location Results (different locations)----------
+Wed Oct  1 19:40:05 2025 mAP: 21.72%
+Wed Oct  1 19:40:05 2025 CMC curve
+Wed Oct  1 19:40:05 2025 Rank-1  : 39.62%
+Wed Oct  1 19:40:05 2025 Rank-5  : 53.99%
+Wed Oct  1 19:40:05 2025 Rank-10 : 62.30%
+Wed Oct  1 19:40:05 2025 Rank-20 : 69.97%
+Wed Oct  1 19:40:05 2025 ------------------
+Wed Oct  1 19:40:05 2025 16 query samples do not have groundtruth.
+Wed Oct  1 19:40:05 2025 Scale Results (same scales)----------
+Wed Oct  1 19:40:05 2025 mAP: 21.93%
+Wed Oct  1 19:40:05 2025 CMC curve
+Wed Oct  1 19:40:05 2025 Rank-1  : 40.33%
+Wed Oct  1 19:40:05 2025 Rank-5  : 57.33%
+Wed Oct  1 19:40:05 2025 Rank-10 : 64.67%
+Wed Oct  1 19:40:05 2025 Rank-20 : 71.67%
+Wed Oct  1 19:40:05 2025 ------------------
+Wed Oct  1 19:40:05 2025 18 query samples do not have groundtruth.
+Wed Oct  1 19:40:05 2025 Scale Results (different scales)----------
+Wed Oct  1 19:40:05 2025 mAP: 17.55%
+Wed Oct  1 19:40:05 2025 CMC curve
+Wed Oct  1 19:40:05 2025 Rank-1  : 28.86%
+Wed Oct  1 19:40:05 2025 Rank-5  : 43.62%
+Wed Oct  1 19:40:05 2025 Rank-10 : 48.66%
+Wed Oct  1 19:40:05 2025 Rank-20 : 57.38%
+Wed Oct  1 19:40:05 2025 ------------------
+(venvAGRL) PS D:\MEVID-main\mevid-checkout\AGRL>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

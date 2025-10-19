@@ -1,0 +1,58 @@
+Overall Results ----------
+top1:48.6% top5:62.2% top10:73.0% top20:77.0% mAP:38.4%
+------------------
+146 query samples do not have groundtruth.
+SC Results ----------
+mAP: 52.21%
+CMC curve
+Rank-1  : 64.81%
+Rank-5  : 77.78%
+Rank-10 : 88.89%
+Rank-20 : 94.44%
+------------------
+163 query samples do not have groundtruth.
+CC Results ----------
+mAP: 9.71%
+CMC curve
+Rank-1  : 2.70%
+Rank-5  : 21.62%
+Rank-10 : 37.84%
+Rank-20 : 43.24%
+------------------
+148 query samples do not have groundtruth.
+Location Results (same locations)----------
+mAP: 35.32%
+CMC curve
+Rank-1  : 42.31%
+Rank-5  : 61.54%
+Rank-10 : 75.00%
+Rank-20 : 76.92%
+------------------
+133 query samples do not have groundtruth.
+Location Results (different locations)----------
+mAP: 37.88%
+CMC curve
+Rank-1  : 46.27%
+Rank-5  : 61.19%
+Rank-10 : 68.66%
+Rank-20 : 79.10%
+------------------
+133 query samples do not have groundtruth.
+Scale Results (same scales)----------
+mAP: 36.47%
+CMC curve
+Rank-1  : 44.78%
+Rank-5  : 56.72%
+Rank-10 : 59.70%
+Rank-20 : 70.15%
+------------------
+145 query samples do not have groundtruth.
+Scale Results (different scales)----------
+mAP: 28.12%
+CMC curve
+Rank-1  : 30.91%
+Rank-5  : 56.36%
+Rank-10 : 70.91%
+Rank-20 : 76.36%
+------------------
+Total runtime: 3863.03 seconds (64.38 min)

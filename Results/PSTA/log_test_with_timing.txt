@@ -1,0 +1,253 @@
+
+====================================================================================================
+Configuration:
+====================================================================================================
+  Dataset: mevid
+  Model: PSTA
+  Model Path: C:\Users\VICTUS\Desktop\CVproject\MEVID-main\PSTA\PSTA_best_model.pth
+  Test Sampler: Begin_interval
+  Distance Metric: cosine
+  Sequence Length: 8
+  Batch Size: 32
+  GPU ID: 0
+  Print Frequency: Every 10 batches
+====================================================================================================
+
+[OK] Using GPU 0: NVIDIA GeForce RTX 4050 Laptop GPU
+  PyTorch Version: 2.5.1
+  CUDA Version: 12.1
+  GPU Memory: 6.00 GB
+
+Initializing MEVID dataset from: C:\Users\VICTUS\Desktop\CVproject\MEVID-main\STMN\Mevid
+=> MEVID loaded
+Dataset statistics:
+  ------------------------------
+  subset   | # ids | # tracklets
+  ------------------------------
+  train    |   104 |     6338
+  query    |    52 |      316
+  gallery  |    54 |     1438
+  ------------------------------
+  total    |   156 |     8092
+  number of images per tracklet: 1 ~ 1000, average 592.6
+  ------------------------------
+[OK] Dataset loaded successfully in 24.21s
+
+Initializing PSTA model...
+Loading pretrained ImageNet model ......
+Build 1 layer TRA!
+Build 1 layer SRA!
+Build 2 layer TRA!
+Build 2 layer SRA!
+Build 3 layer TRA!
+Build 3 layer SRA!
+[OK] Model initialized in 0.53s
+  Model size: 33.82M parameters
+
+Loading pre-trained model from: C:\Users\VICTUS\Desktop\CVproject\MEVID-main\PSTA\PSTA_best_model.pth
+[OK] Pre-trained model loaded successfully in 1.93s
+
+Preparing data loaders...
+  Using Begin_interval sampling
+[OK] Data loaders prepared in 0.00s
+  Query batches: 10
+  Gallery batches: 45
+
+====================================================================================================
+Starting Evaluation...
+====================================================================================================
+
+====================================================================================================
+PHASE 1: Extracting Query Features
+====================================================================================================
+  Query Batch [   1/  10] | Batch Time: 6.2938s | Forward Time: 6.2169s | Avg Time: 6.2938s | Speed: 0.16 batch/s
+  Query Batch [  10/  10] | Batch Time: 4.8838s | Forward Time: 4.8622s | Avg Time: 1.5850s | Speed: 0.63 batch/s
+
+----------------------------------------------------------------------------------------------------
+[OK] Query Feature Extraction Complete
+  Total Samples: 316
+  Feature Dimension: 1024
+  Total Batches: 10
+  Total Time: 37.16s
+  Avg Batch Time: 1.5850s +/- 2.0267s
+  Min Batch Time: 0.5683s
+  Max Batch Time: 6.2938s
+  Throughput: 0.27 batch/s
+----------------------------------------------------------------------------------------------------
+
+====================================================================================================
+PHASE 2: Extracting Gallery Features
+====================================================================================================
+  Gallery Batch [   1/  45] | Batch Time: 0.8978s | Forward Time: 0.8311s | Avg Time: 0.8978s | Speed: 1.11 batch/s
+  Gallery Batch [  10/  45] | Batch Time: 0.5856s | Forward Time: 0.5705s | Avg Time: 0.6168s | Speed: 1.62 batch/s
+  Gallery Batch [  20/  45] | Batch Time: 0.5792s | Forward Time: 0.5629s | Avg Time: 0.5889s | Speed: 1.70 batch/s
+  Gallery Batch [  30/  45] | Batch Time: 0.5722s | Forward Time: 0.5582s | Avg Time: 0.5753s | Speed: 1.74 batch/s
+  Gallery Batch [  40/  45] | Batch Time: 0.5732s | Forward Time: 0.5557s | Avg Time: 0.5713s | Speed: 1.75 batch/s
+
+----------------------------------------------------------------------------------------------------
+[OK] Gallery Feature Extraction Complete
+  Total Samples: 1438
+  Feature Dimension: 1024
+  Total Batches: 45
+  Total Time: 54.51s
+  Avg Batch Time: 0.6984s +/- 0.7393s
+  Min Batch Time: 0.5625s
+  Max Batch Time: 5.5919s
+  Throughput: 0.83 batch/s
+----------------------------------------------------------------------------------------------------
+
+[OK] Features saved in 0.01s: C:\Users\VICTUS\Desktop\CVproject\MEVID-main\PSTA\logs\test_pretrained_2025-10-03_06-25-20\eval_features.npz
+
+====================================================================================================
+PHASE 3: Computing Distance Matrix and Evaluation Metrics
+====================================================================================================
+
+====================================================================================================
+EVALUATION METRICS - MEVID Dataset
+====================================================================================================
+
+====================================================================================================
+1. OVERALL RESULTS
+   Description: Standard person re-identification using all query-gallery pairs
+====================================================================================================
+   mAP (mean Average Precision): 21.14%
+
+   CMC (Cumulative Matching Characteristic) Curve:
+      Rank-1 : 45.57%  <- Probability correct match is in top-1 results
+      Rank-5 : 61.39%  <- Probability correct match is in top-5 results
+      Rank-10: 69.30%  <- Probability correct match is in top-10 results
+      Rank-20: 78.80%  <- Probability correct match is in top-20 results
+====================================================================================================
+   Note: 28 query samples do not have groundtruth.
+
+====================================================================================================
+2. SC (SAME CLOTHES) Results
+   Description: Person wearing SAME outfit in query and gallery
+   Difficulty: EASY - Appearance features are consistent
+====================================================================================================
+   mAP: 29.44%
+
+   CMC Curve:
+      Rank-1 : 48.26%
+      Rank-5 : 64.58%
+      Rank-10: 72.22%
+      Rank-20: 79.86%
+====================================================================================================
+   Note: 32 query samples do not have groundtruth.
+
+====================================================================================================
+3. CC (CLOTHES-CHANGING) Results  **MOST IMPORTANT METRIC**
+   Description: Person wearing DIFFERENT outfit in query and gallery
+   Difficulty: VERY HARD - Must rely on biometric features, not clothing
+   Importance: Critical for real-world applications (people change clothes)
+====================================================================================================
+   mAP: 5.06%
+
+   CMC Curve:
+      Rank-1 : 5.63%
+      Rank-5 : 11.97%
+      Rank-10: 19.01%
+      Rank-20: 28.87%
+====================================================================================================
+   Note: 3 query samples do not have groundtruth.
+
+====================================================================================================
+4. SL (SAME LOCATION) Results
+   Description: Person in SAME location type (both indoor OR both outdoor)
+   Difficulty: MEDIUM - Similar lighting and environmental conditions
+====================================================================================================
+   mAP: 19.58%
+
+   CMC Curve:
+      Rank-1 : 36.42%
+      Rank-5 : 52.72%
+      Rank-10: 60.70%
+      Rank-20: 69.33%
+====================================================================================================
+   Note: 21 query samples do not have groundtruth.
+
+====================================================================================================
+5. DL (DIFFERENT LOCATIONS) Results
+   Description: Person in DIFFERENT location types (indoor vs outdoor)
+   Difficulty: HARD - Different lighting, backgrounds, conditions
+====================================================================================================
+   mAP: 16.09%
+
+   CMC Curve:
+      Rank-1 : 27.46%
+      Rank-5 : 42.03%
+      Rank-10: 48.81%
+      Rank-20: 55.93%
+====================================================================================================
+   Note: 16 query samples do not have groundtruth.
+
+====================================================================================================
+6. SS (SAME SCALE) Results
+   Description: Person at SIMILAR size/distance in query and gallery
+   Difficulty: MEDIUM - Consistent image resolution
+====================================================================================================
+   mAP: 18.57%
+
+   CMC Curve:
+      Rank-1 : 34.00%
+      Rank-5 : 51.00%
+      Rank-10: 60.00%
+      Rank-20: 67.67%
+====================================================================================================
+   Note: 18 query samples do not have groundtruth.
+
+====================================================================================================
+7. DS (DIFFERENT SCALES) Results
+   Description: Person at DIFFERENT sizes/distances in query and gallery
+   Difficulty: HARD - Tests scale-invariance and robustness
+====================================================================================================
+   mAP: 16.66%
+
+   CMC Curve:
+      Rank-1 : 29.19%
+      Rank-5 : 44.30%
+      Rank-10: 51.01%
+      Rank-20: 60.74%
+====================================================================================================
+
+====================================================================================================
+SUMMARY - All Metrics (mAP)
+====================================================================================================
+   Metric                          mAP      Difficulty
+   ------------------------------------------------------------------------------------------------
+   Overall (all pairs)          21.14%     Baseline
+   SC (Same Clothes)            29.44%     EASY
+   CC (Clothes-Changing)        5.06%     VERY HARD  <-- Most Important!
+   SL (Same Location)           19.58%     MEDIUM
+   DL (Different Location)      16.09%     HARD
+   SS (Same Scale)              18.57%     MEDIUM
+   DS (Different Scale)         16.66%     HARD
+====================================================================================================
+
+KEY INSIGHTS:
+  - CC (Clothes-Changing) is the most challenging and important metric
+  - Higher CC mAP indicates better person re-identification in real-world scenarios
+  - Good models should maintain high performance across all metrics
+====================================================================================================
+
+
+[OK] Evaluation completed in 2.62s
+====================================================================================================
+
+====================================================================================================
+TIMING SUMMARY
+====================================================================================================
+  Query Feature Extraction:             37.16s ( 39.4%)
+  Gallery Feature Extraction:           54.51s ( 57.8%)
+  Feature Saving:                        0.01s (  0.0%)
+  Distance & Evaluation:                 2.62s (  2.8%)
+  ------------------------------------------------------------------------------------------------
+  TOTAL TIME:                        1m 34.30s
+====================================================================================================
+[OK] Timing summary saved to: C:\Users\VICTUS\Desktop\CVproject\MEVID-main\PSTA\logs\test_pretrained_2025-10-03_06-25-20\timing_summary.txt
+
+====================================================================================================
+[OK] Evaluation Completed!
+  Total evaluation time: 1m 34.31s
+  Results saved to: C:\Users\VICTUS\Desktop\CVproject\MEVID-main\PSTA\logs\test_pretrained_2025-10-03_06-25-20
+====================================================================================================

@@ -1,0 +1,56 @@
+==========
+Args:Namespace(dataset='mars', workers=4, height=256, width=128, seq_len=8, sample_stride=4, test_frames=8, distance='consine', arch='BiCnet_TKS', save_dir='log-mevid', resume='D:\\MEVID-main\\mevid-checkout\\BiCnet-TKS\\BiCnet_best_model.pth.tar', seed=1, use_cpu=False, gpu_devices='0')
+==========
+Currently using GPU 0
+Initializing dataset mars
+=> MEVID loaded
+Dataset statistics:
+  ------------------------------
+  subset   | # ids | # tracklets
+  ------------------------------
+  train    |   104 |     6338
+  query    |    52 |      316
+  gallery  |    54 |     1438
+  ------------------------------
+  total    |   158 |     8092
+  number of images per tracklet: 1 ~ 1000, average 592.6
+  ------------------------------
+Initializing model: BiCnet_TKS
+TSK, reduction: 16, squeeze_size: 8
+Model size: 29.48751M
+Loading checkpoint from 'D:\MEVID-main\mevid-checkout\BiCnet-TKS\BiCnet_best_model.pth.tar'
+Extracted features for query set, obtained torch.Size([316, 2048]) matrix
+1000/1438
+Extracted features for gallery set, obtained torch.Size([1438, 2048]) matrix
+Extracting features complete in 128m 42s
+Using distance metric: consine
+Extracted features for gallery set, obtained torch.Size([1438, 2048]) matrix
+Extracting features complete in 128m 42s
+Computing distance matrix
+Computing CMC and mAP
+Overall Results ----------
+mAP: 6.30%
+CMC curve
+Rank-1  : 18.99%
+Rank-5  : 35.44%
+Rank-10 : 40.51%
+Rank-20 : 52.85%
+------------------
+28 query samples do not have groundtruth.
+Same Clothes Results ----------
+mAP: 7.97%
+CMC curve
+Rank-1  : 20.49%
+Rank-5  : 36.46%
+Rank-10 : 41.67%
+Rank-20 : 51.39%
+------------------
+32 query samples do not have groundtruth.
+Changing Clothes Results ----------
+mAP: 1.73%
+CMC curve
+Rank-1  : 0.70%
+Rank-5  : 4.58%
+Rank-10 : 7.75%
+Rank-20 : 13.03%
+------------------
