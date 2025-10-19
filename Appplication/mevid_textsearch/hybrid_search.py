@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from .clip_utils import encode_text
 from .temporal_reid import VideoReIDExtractor
+from .sota_reid import SOTAReIDExtractor  # NEW: SOTA models
 from .faiss_utils import load_index
 
 @dataclass
@@ -33,15 +34,18 @@ class HybridSearchEngine:
         self,
         artifacts_dir: Path,
         reid_model_path: Path = None,
-        device: str = None
+        device: str = None,
+        reid_type: str = 'ap3d'  # ADD THIS PARAMETER (default='ap3d')
     ):
         """
         Args:
             artifacts_dir: Directory containing FAISS index and metadata
             reid_model_path: Path to pretrained Video ReID model (optional)
             device: 'cuda' or 'cpu'
+            reid_type: ReID model type - 'temporal', 'ap3d', 'transreid', 'fastreid'  # ADD THIS
         """
         self.artifacts_dir = Path(artifacts_dir)
+        self.reid_type = reid_type  # ADD THIS
         
         # Load CLIP-based FAISS index
         print("[Hybrid] Loading CLIP index...")
@@ -51,17 +55,28 @@ class HybridSearchEngine:
         with open(self.artifacts_dir / "meta_test.pkl", "rb") as f:
             self.metadata = pickle.load(f)
         
-        # Load CLIP features for ReID reference
+        # Load CLIP features
         self.clip_features = np.load(self.artifacts_dir / "vecs_test.npy")
         
-        # Initialize Video ReID extractor
-        print("[Hybrid] Initializing Video ReID model...")
-        self.reid_extractor = VideoReIDExtractor(
-            model_path=reid_model_path,
-            device=device
-        )
+        # Initialize Video ReID extractor based on type  # ADD THIS SECTION
+        print(f"[Hybrid] Initializing {reid_type.upper()} ReID model...")
         
-        # Cache for ReID features (lazy loading)
+        if reid_type == 'temporal':
+            # Original temporal attention model
+            self.reid_extractor = VideoReIDExtractor(
+                model_path=reid_model_path,
+                device=device
+            )
+        else:
+            # SOTA models (ap3d, transreid, fastreid)
+            self.reid_extractor = SOTAReIDExtractor(
+                model_type=reid_type,
+                model_path=reid_model_path,
+                device=device
+            )
+        # END OF ADDED SECTION
+        
+        # Cache for ReID features
         self._reid_cache = {}
         
         print("[Hybrid] Ready!")

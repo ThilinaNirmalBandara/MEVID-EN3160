@@ -20,3 +20,9 @@ FAISS_NPROBE = 16
 # Streamlit thumbs directory (small GIFs/webm)
 THUMBS_DIR = ARTIFACTS / "thumbs"
 THUMBS_DIR.mkdir(exist_ok=True)
+
+
+# ReID Model Settings
+REID_MODEL_TYPE = 'ap3d'  # Options: 'temporal', 'ap3d', 'fastreid', 'transreid'
+REID_FRAMES = 16           # Number of frames to sample
+REID_BATCH_SIZE = 8        # Batch size for feature extraction
