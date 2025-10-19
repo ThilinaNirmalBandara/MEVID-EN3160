@@ -1,9 +1,8 @@
 import sys, os
 from pathlib import Path
-import json
 
-# ensure we can import config + package when running as: python scripts/parse_mevid.py
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add parent directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import argparse
 from config import ARTIFACTS, MEVID_ROOT
@@ -38,8 +37,13 @@ def main():
     parser.add_argument("--alpha", type=float, default=0.6, help="CLIP weight (0-1)")
     parser.add_argument("--no_reid", action="store_true", help="Use CLIP only (no ReID)")
     parser.add_argument("--reid_model", type=str, help="Path to pretrained ReID model")
+    parser.add_argument("--reid_type", type=str, default='ap3d', 
+                       choices=['temporal', 'ap3d', 'fastreid', 'transreid'],
+                       help="ReID model type: ap3d (recommended), fastreid (fastest), transreid (most accurate)")
     parser.add_argument("--precompute", action="store_true", help="Precompute all ReID features")
     parser.add_argument("--no_diversity", action="store_true", help="Disable camera diversity")
+    parser.add_argument("--reid_refs", type=int, default=3, help="Number of top CLIP results to use as ReID references")
+    parser.add_argument("--reid_decay", type=float, default=0.5, help="Weight decay for lower-ranked references")
     
     args = parser.parse_args()
     
@@ -50,7 +54,8 @@ def main():
     
     engine = HybridSearchEngine(
         artifacts_dir=ARTIFACTS,
-        reid_model_path=args.reid_model
+        reid_model_path=args.reid_model,
+        reid_type=args.reid_type 
     )
     
     # Precompute features if requested
@@ -75,7 +80,9 @@ def main():
             topk_final=args.topk,
             alpha=args.alpha,
             use_reid_rerank=not args.no_reid,
-            diversity_penalty=0.0 if args.no_diversity else 0.03
+            diversity_penalty=0.0 if args.no_diversity else 0.03,
+            reid_reference_topk=args.reid_refs,
+            reid_weight_decay=args.reid_decay
         )
         
         print(f"\nTop {len(results)} Results:")

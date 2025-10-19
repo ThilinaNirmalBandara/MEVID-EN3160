@@ -1,9 +1,13 @@
+
+import sys, os
+from pathlib import Path
+import json
+
+# ensure we can import config + package when running as: python scripts/parse_mevid.py
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import streamlit as st
 import sys
 from pathlib import Path
-import sys, os
-from pathlib import Path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Add project to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -63,6 +67,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+
 def get_score_class(score):
     """Get CSS class for score badge"""
     if score >= 0.8:
@@ -73,12 +78,21 @@ def get_score_class(score):
         return "score-low"
 
 
-def display_results(results, query_text):
+def display_results(results, query_text, use_reid=True):
     """Display search results in a grid"""
     
     if not results:
         st.warning("No results found. Try adjusting your query or settings.")
         return
+    
+    # Header with mode indicator
+    if use_reid:
+        st.markdown(f"### 🎬 Video Tracklets for: *'{query_text}'* (CLIP + ReID)")
+    else:
+        st.markdown(f"### 🎬 Video Tracklets for: *'{query_text}'* (CLIP Only)")
+    
+    st.markdown("*Each GIF shows a person walking/moving in the video. Same Person ID across different cameras means it's the same individual tracked across locations.*")
+    st.markdown("---")
     
     # Display in grid
     cols_per_row = 3
@@ -97,7 +111,7 @@ def display_results(results, query_text):
                     if thumb_path.exists():
                         try:
                             img = Image.open(thumb_path)
-                            st.image(img, use_container_width=True)
+                            st.image(img, use_container_width=True, caption=f"🎥 Track {result.track_id} - Camera {result.camera_id}")
                         except:
                             st.image("https://via.placeholder.com/320x240?text=No+Image", use_container_width=True)
                     else:
@@ -106,10 +120,18 @@ def display_results(results, query_text):
                     # Result info card
                     st.markdown(f"""
                     <div class="result-card">
-                        <h4>Rank #{result.rank}</h4>
-                        <p><strong>Track ID:</strong> {result.track_id}</p>
-                        <p><strong>Person ID:</strong> {result.person_id}</p>
-                        <p><strong>Outfit:</strong> {result.outfit} | <strong>Camera:</strong> {result.camera_id}</p>
+                        <h4>🏆 Rank #{result.rank}</h4>
+                        <p>🆔 <strong>Track:</strong> {result.track_id} | 👤 <strong>Person:</strong> {result.person_id}</p>
+                        <p>👔 <strong>Outfit #{result.outfit}</strong> | 📹 <strong>Camera {result.camera_id}</strong></p>
+                        
+                        <hr style="margin: 10px 0;">
+                        
+                        <p style="font-size: 0.9em; color: #666;">
+                            <strong>How scores work:</strong><br>
+                            • CLIP: Text-to-image matching<br>
+                            • ReID: Same person across videos<br>
+                            • Combined: Final ranking score
+                        </p>
                         
                         <div>
                             <span class="score-badge {get_score_class(result.clip_score)}">
@@ -122,19 +144,23 @@ def display_results(results, query_text):
                         
                         <div style="margin-top: 10px;">
                             <span class="score-badge score-high">
-                                Combined: {result.combined_score:.3f}
+                                ⭐ Combined: {result.combined_score:.3f}
                             </span>
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
                     
                     # Expandable frame paths
-                    with st.expander("📁 Frame Paths"):
-                        for frame in result.frames[:5]:
-                            st.code(frame, language="text")
+                    with st.expander("📁 View Frame Paths"):
+                        st.caption(f"This tracklet contains {len(result.frames)} frames")
+                        for idx, frame in enumerate(result.frames[:5], 1):
+                            st.code(f"Frame {idx}: {frame}", language="text")
+                        if len(result.frames) > 5:
+                            st.caption(f"... and {len(result.frames) - 5} more frames")
     
     # Download results
     st.markdown("---")
+    st.markdown("### 📥 Export Results")
     
     col1, col2, col3 = st.columns([1, 1, 1])
     
@@ -167,12 +193,18 @@ def display_results(results, query_text):
         )
 
 
+
 # Initialize session state
 if 'engine' not in st.session_state:
     with st.spinner("🔄 Loading search engine..."):
+        # Let user choose ReID model type
+        reid_model_path = ARTIFACTS / "reid_model.pth" if (ARTIFACTS / "reid_model.pth").exists() else None
+        
+        # Default to AP3D (best balance of speed/accuracy)
         st.session_state.engine = HybridSearchEngine(
             artifacts_dir=ARTIFACTS,
-            reid_model_path=ARTIFACTS / "reid_model.pth" if (ARTIFACTS / "reid_model.pth").exists() else None
+            reid_model_path=reid_model_path,
+            reid_type='ap3d'  # Options: 'temporal', 'ap3d', 'transreid', 'fastreid'
         )
         st.session_state.engine_loaded = True
 
@@ -183,26 +215,54 @@ st.markdown("**Hybrid CLIP + Video ReID System** - Search for people across mult
 # Add explanation of how it works
 with st.expander("ℹ️ How This Works", expanded=False):
     st.markdown("""
-    ### 🔄 Search Process:
+    ### 🔄 Two Search Modes Explained:
     
-    **Your Input** → Text description (e.g., "man in black jacket")
+    #### **Mode 1: Text Search** 
     
-    **Stage 1: CLIP (Fast Text-to-Video Search)**
-    - Converts your text into a 512-dimensional vector
-    - Searches through all 1,754 tracklets in ~0.1 seconds
-    - Returns top 50 candidates that match your description
+    You can choose between two approaches:
     
-    **Stage 2: Video ReID (Accurate Re-ranking)**
-    - Takes the best CLIP result as reference
-    - Analyzes video sequences using temporal attention
-    - Identifies which tracklets show the SAME person
-    - Re-ranks: 60% CLIP score + 40% ReID score
+    **🚀 Hybrid (CLIP + ReID) - RECOMMENDED** ✅
+    ```
+    Your Text → CLIP (finds matches) → ReID (re-ranks) → Results
+    ```
+    - **Stage 1:** CLIP finds 50 candidates based on text description
+    - **Stage 2:** Video ReID re-ranks using temporal patterns
+    - **Best for:** Finding the SAME person across multiple cameras
+    - **Accuracy:** ⭐⭐⭐⭐⭐ (Best)
+    - **Speed:** ⭐⭐⭐ (1-2 seconds)
     
-    **Output** → Top 10 tracklets with:
-    - 🎬 Animated GIF showing the person walking
-    - 📊 Scores (CLIP, ReID, Combined)
-    - 📍 Track ID, Person ID, Camera, Outfit
-    - 📁 Frame paths for detailed analysis
+    **⚡ CLIP Only - FASTER**
+    ```
+    Your Text → CLIP (finds matches) → Results
+    ```
+    - **Single Stage:** CLIP only, no ReID re-ranking
+    - **Best for:** Quick searches, general appearance matching
+    - **Accuracy:** ⭐⭐⭐ (Good)
+    - **Speed:** ⭐⭐⭐⭐⭐ (0.1 seconds)
+    
+    ---
+    
+    #### **Mode 2: Video-to-Video ReID**
+    
+    **Pure ReID - No Text Needed**
+    ```
+    Track ID → ReID Model → Find Same Person → Results
+    ```
+    - Input a Track ID (from previous search or dataset)
+    - Finds ALL tracklets of the SAME person
+    - Uses only visual appearance (no text)
+    - **Best for:** Cross-camera tracking
+    
+    ---
+    
+    ### 📊 When to Use Each Mode:
+    
+    | Scenario | Mode | Settings |
+    |----------|------|----------|
+    | "Find person in black jacket" | Text Search | ✅ ReID ON |
+    | "Quick search for any person in blue" | Text Search | ❌ ReID OFF |
+    | "Track this person (ID 1548) across cameras" | Video ReID | N/A |
+    | "Find same person after initial search" | Video ReID | N/A |
     
     ---
     
@@ -216,9 +276,9 @@ with st.expander("ℹ️ How This Works", expanded=False):
     **Example:**
     ```
     Person ID: 231 has tracklets in:
-    - Camera 507 (Track 1548) ← You search for this
-    - Camera 340 (Track 1524) ← ReID finds this match!
-    - Camera 329 (Track 1619) ← ReID finds this too!
+    - Camera 507 (Track 1548) ← Search finds this
+    - Camera 340 (Track 1524) ← ReID identifies same person!
+    - Camera 329 (Track 1619) ← ReID identifies same person!
     ```
     
     This lets you **track a person across multiple cameras** 🎥
@@ -226,6 +286,38 @@ with st.expander("ℹ️ How This Works", expanded=False):
 
 # Sidebar
 st.sidebar.header("⚙️ Search Settings")
+
+# Model selection (at top of sidebar)
+st.sidebar.subheader("🤖 ReID Model")
+reid_model_type = st.sidebar.selectbox(
+    "Choose ReID Model",
+    options=['ap3d', 'fastreid', 'transreid', 'temporal'],
+    index=0,  # Default to AP3D
+    help="AP3D: Best balance (recommended) | FastReID: Fastest | TransReID: Most accurate | Temporal: Original"
+)
+
+# Show model info
+model_info = {
+    'ap3d': "⚡ **AP3D** - Fast & Accurate (88% R@1, 5-10ms)",
+    'fastreid': "🚀 **FastReID** - Ultra Fast (82% R@1, 2-5ms)",
+    'transreid': "🎯 **TransReID** - Most Accurate (92% R@1, 20-30ms)",
+    'temporal': "📊 **Temporal Attention** - Original (68% R@1, 10-15ms)"
+}
+st.sidebar.info(model_info[reid_model_type])
+
+# Reload engine if model type changed
+if 'current_reid_type' not in st.session_state or st.session_state.current_reid_type != reid_model_type:
+    with st.spinner(f"Loading {reid_model_type.upper()} model..."):
+        reid_model_path = ARTIFACTS / "reid_model.pth" if (ARTIFACTS / "reid_model.pth").exists() else None
+        st.session_state.engine = HybridSearchEngine(
+            artifacts_dir=ARTIFACTS,
+            reid_model_path=reid_model_path,
+            reid_type=reid_model_type
+        )
+        st.session_state.current_reid_type = reid_model_type
+        st.success(f"✓ {reid_model_type.upper()} loaded!")
+
+st.sidebar.markdown("---")
 
 search_mode = st.sidebar.radio(
     "Search Mode",
@@ -245,13 +337,19 @@ if search_mode == "Text Search":
         help="Use temporal model for better accuracy (slower)"
     )
     
+    if use_reid:
+        st.sidebar.success("✅ **2-Stage Search Active:**\n1️⃣ CLIP finds candidates\n2️⃣ ReID re-ranks results")
+    else:
+        st.sidebar.warning("⚠️ **CLIP Only:**\nFaster but less accurate")
+    
     alpha = st.sidebar.slider(
         "CLIP Weight (α)",
         min_value=0.0,
         max_value=1.0,
         value=0.6,
         step=0.1,
-        help="Higher = more weight on text matching"
+        help="Higher = more weight on text matching",
+        disabled=not use_reid  # Disable if ReID is off
     )
     
     topk_clip = st.sidebar.slider(
@@ -262,6 +360,28 @@ if search_mode == "Text Search":
         step=10,
         help="Number of candidates for re-ranking"
     )
+    
+    if use_reid:
+        reid_refs = st.sidebar.slider(
+            "ReID Reference Count",
+            min_value=1,
+            max_value=10,
+            value=3,
+            step=1,
+            help="Use top-K CLIP results as ReID references (more = robust, slower)"
+        )
+        
+        reid_decay = st.sidebar.slider(
+            "ReID Weight Decay",
+            min_value=0.1,
+            max_value=1.0,
+            value=0.5,
+            step=0.1,
+            help="How quickly weights decrease for lower-ranked references"
+        )
+    else:
+        reid_refs = 3
+        reid_decay = 0.5
     
     diversity = st.sidebar.checkbox(
         "Camera Diversity",
@@ -333,6 +453,16 @@ if search_mode == "Text Search":
                 search_button = True
     
     if search_button and query:
+        # Show what's happening
+        st.markdown("### 🔄 Search Process")
+        
+        progress_container = st.empty()
+        stage_container = st.empty()
+        
+        # Stage 1
+        stage_container.info("🔍 **Stage 1:** CLIP searching through 1,754 tracklets...")
+        progress_container.progress(30)
+        
         with st.spinner(f"🔎 Searching for: **{query}**..."):
             results = st.session_state.engine.search(
                 query=query,
@@ -341,10 +471,35 @@ if search_mode == "Text Search":
                 topk_final=topk,
                 alpha=alpha,
                 use_reid_rerank=use_reid,
-                diversity_penalty=0.03 if diversity else 0.0
+                diversity_penalty=0.03 if diversity else 0.0,
+                reid_reference_topk=reid_refs if use_reid else 3,
+                reid_weight_decay=reid_decay if use_reid else 0.5
             )
         
-        st.success(f"✅ Found {len(results)} results!")
+        # Stage 2 (if ReID enabled)
+        if use_reid:
+            stage_container.info("✨ **Stage 2:** Video ReID analyzing temporal patterns...")
+            progress_container.progress(60)
+        
+        progress_container.progress(100)
+        stage_container.empty()
+        progress_container.empty()
+        
+        st.success(f"✅ Found {len(results)} tracklets!")
+        
+        # Show stats
+        unique_persons = len(set(r.person_id for r in results))
+        unique_cameras = len(set(r.camera_id for r in results))
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("📊 Tracklets Found", len(results))
+        with col2:
+            st.metric("👥 Unique Persons", unique_persons)
+        with col3:
+            st.metric("📹 Cameras", unique_cameras)
+        
+        st.markdown("---")
         
         # Display results
         display_results(results, query)

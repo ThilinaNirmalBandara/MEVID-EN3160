@@ -6,7 +6,7 @@ from typing import Literal
 
 def build_index(
     X: np.ndarray,
-    kind: Literal["flat","ivfpq"]="ivfpq",
+    kind: Literal["flat","ivfpq"]="flat",
     nlist: int = 512,
     m: int = 64,
     nprobe: int = 16,

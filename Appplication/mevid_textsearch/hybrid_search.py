@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from .clip_utils import encode_text
 from .temporal_reid import VideoReIDExtractor
+from .sota_reid import SOTAReIDExtractor  # NEW: SOTA models
 from .faiss_utils import load_index
 
 @dataclass
@@ -33,15 +34,18 @@ class HybridSearchEngine:
         self,
         artifacts_dir: Path,
         reid_model_path: Path = None,
-        device: str = None
+        device: str = None,
+        reid_type: str = 'ap3d'  # ADD THIS PARAMETER (default='ap3d')
     ):
         """
         Args:
             artifacts_dir: Directory containing FAISS index and metadata
             reid_model_path: Path to pretrained Video ReID model (optional)
             device: 'cuda' or 'cpu'
+            reid_type: ReID model type - 'temporal', 'ap3d', 'transreid', 'fastreid'  # ADD THIS
         """
         self.artifacts_dir = Path(artifacts_dir)
+        self.reid_type = reid_type  # ADD THIS
         
         # Load CLIP-based FAISS index
         print("[Hybrid] Loading CLIP index...")
@@ -51,17 +55,28 @@ class HybridSearchEngine:
         with open(self.artifacts_dir / "meta_test.pkl", "rb") as f:
             self.metadata = pickle.load(f)
         
-        # Load CLIP features for ReID reference
+        # Load CLIP features
         self.clip_features = np.load(self.artifacts_dir / "vecs_test.npy")
         
-        # Initialize Video ReID extractor
-        print("[Hybrid] Initializing Video ReID model...")
-        self.reid_extractor = VideoReIDExtractor(
-            model_path=reid_model_path,
-            device=device
-        )
+        # Initialize Video ReID extractor based on type  # ADD THIS SECTION
+        print(f"[Hybrid] Initializing {reid_type.upper()} ReID model...")
         
-        # Cache for ReID features (lazy loading)
+        if reid_type == 'temporal':
+            # Original temporal attention model
+            self.reid_extractor = VideoReIDExtractor(
+                model_path=reid_model_path,
+                device=device
+            )
+        else:
+            # SOTA models (ap3d, transreid, fastreid)
+            self.reid_extractor = SOTAReIDExtractor(
+                model_type=reid_type,
+                model_path=reid_model_path,
+                device=device
+            )
+        # END OF ADDED SECTION
+        
+        # Cache for ReID features
         self._reid_cache = {}
         
         print("[Hybrid] Ready!")
@@ -109,7 +124,9 @@ class HybridSearchEngine:
         topk_final: int = 10,
         alpha: float = 0.6,
         use_reid_rerank: bool = True,
-        diversity_penalty: float = 0.03
+        diversity_penalty: float = 0.03,
+        reid_reference_topk: int = 3,  # NEW: Use top-K CLIP results as references
+        reid_weight_decay: float = 0.5  # NEW: Weight decay for lower-ranked references
     ) -> List[SearchResult]:
         """
         Hybrid search: CLIP retrieval + Video ReID re-ranking
@@ -122,6 +139,8 @@ class HybridSearchEngine:
             alpha: Weight for combining scores (alpha*clip + (1-alpha)*reid)
             use_reid_rerank: Whether to use ReID for re-ranking
             diversity_penalty: Penalty for repeated cameras
+            reid_reference_topk: Number of top CLIP results to use as ReID references
+            reid_weight_decay: Weight decay for lower-ranked references (exponential)
         
         Returns:
             List of SearchResult objects, ranked by combined score
@@ -157,19 +176,41 @@ class HybridSearchEngine:
                 ))
             return results[:topk_final]
         
-        # Stage 2: Video ReID re-ranking
-        print(f"[Stage 2] Video ReID re-ranking top {len(clip_ids)} candidates")
+        # Stage 2: Video ReID re-ranking with multiple references
+        print(f"[Stage 2] Video ReID re-ranking with top-{reid_reference_topk} references")
         
-        # Extract query ReID feature from top-1 CLIP result
-        query_reid_feat = self._get_reid_feature(clip_ids[0], mevid_root)
+        # Extract ReID features for top-K CLIP results as references
+        reference_feats = []
+        reference_weights = []
         
-        # Compute ReID similarities for all candidates
+        for i in range(min(reid_reference_topk, len(clip_ids))):
+            ref_tid = clip_ids[i]
+            ref_feat = self._get_reid_feature(ref_tid, mevid_root)
+            
+            # Weight decreases exponentially: 1.0, 0.5, 0.25, ...
+            weight = reid_weight_decay ** i
+            
+            reference_feats.append(ref_feat)
+            reference_weights.append(weight)
+        
+        # Normalize weights to sum to 1
+        weight_sum = sum(reference_weights)
+        reference_weights = [w / weight_sum for w in reference_weights]
+        
+        print(f"[Stage 2] Using {len(reference_feats)} references with weights: {[f'{w:.3f}' for w in reference_weights]}")
+        
+        # Compute ReID similarities for all candidates using weighted average
         reid_scores = []
         for tid in clip_ids:
             candidate_feat = self._get_reid_feature(tid, mevid_root)
-            # Cosine similarity
-            sim = np.dot(query_reid_feat, candidate_feat)
-            reid_scores.append(sim)
+            
+            # Compute weighted similarity with all references
+            weighted_sim = 0.0
+            for ref_feat, weight in zip(reference_feats, reference_weights):
+                sim = np.dot(ref_feat, candidate_feat)
+                weighted_sim += weight * sim
+            
+            reid_scores.append(weighted_sim)
         
         # Normalize ReID scores
         reid_min, reid_max = min(reid_scores), max(reid_scores)

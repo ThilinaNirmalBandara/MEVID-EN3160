@@ -1,7 +1,10 @@
+
 import sys, os
 from pathlib import Path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import json
 
+# ensure we can import config + package when running as: python scripts/parse_mevid.py
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import torch
 import torch.nn as nn
