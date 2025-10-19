@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Method Comparison Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial,
+          sans-serif;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        padding: 20px;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+      }
+      h1 {
+        text-align: center;
+        color: #1e293b;
+        margin-bottom: 10px;
+        font-size: 28px;
+      }
+      .subtitle {
+        text-align: center;
+        color: #64748b;
+        margin-bottom: 30px;
+        font-size: 14px;
+      }
+      .button-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 10px;
+        margin-bottom: 30px;
+      }
+      .method-btn {
+        padding: 12px 16px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: #f1f5f9;
+        color: #475569;
+      }
+      .method-btn:hover {
+        background: #e2e8f0;
+      }
+      .method-btn.active {
+        background: #2563eb;
+        color: white;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+      }
+      .chart-container {
+        position: relative;
+        height: 500px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Method Comparison: Paper vs Our Results</h1>
+      <p class="subtitle">
+        Select a method to compare performance across all metrics
+      </p>
+
+      <div class="button-grid" id="methodButtons"></div>
+
+      <div class="chart-container">
+        <canvas id="myChart"></canvas>
+      </div>
+    </div>
+
+    <script>
+      const allData = {
+        CAL: {
+          paper: {
+            mAP: 22.2,
+            "Top-1": 35,
+            "Top-5": 49.8,
+            "Top-10": 55.2,
+            "Top-20": 62,
+          },
+          ours: {
+            mAP: 21.5,
+            "Top-1": 36.3,
+            "Top-5": 49.2,
+            "Top-10": 55.9,
+            "Top-20": 61,
+          },
+        },
+        AGRL: {
+          paper: {
+            mAP: 22.5,
+            "Top-1": 41.1,
+            "Top-5": 57.6,
+            "Top-10": 64.8,
+            "Top-20": 70.1,
+          },
+          ours: {
+            mAP: 21.7,
+            "Top-1": 39.6,
+            "Top-5": 54,
+            "Top-10": 62.3,
+            "Top-20": 70,
+          },
+        },
+        TCLNet: {
+          paper: {
+            mAP: 18.8,
+            "Top-1": 33,
+            "Top-5": 42.4,
+            "Top-10": 48.5,
+            "Top-20": 55.9,
+          },
+          ours: {
+            mAP: 13.8,
+            "Top-1": 23.7,
+            "Top-5": 36.6,
+            "Top-10": 41.7,
+            "Top-20": 47.1,
+          },
+        },
+        PSTA: {
+          paper: {
+            mAP: 16.5,
+            "Top-1": 28.6,
+            "Top-5": 41.4,
+            "Top-10": 49.5,
+            "Top-20": 57.6,
+          },
+          ours: {
+            mAP: 16.1,
+            "Top-1": 27.5,
+            "Top-5": 42,
+            "Top-10": 48.8,
+            "Top-20": 56,
+          },
+        },
+        PiT: {
+          paper: {
+            mAP: 10.1,
+            "Top-1": 19.2,
+            "Top-5": 34,
+            "Top-10": 39.1,
+            "Top-20": 49.2,
+          },
+          ours: {
+            mAP: 11.8,
+            "Top-1": 25.9,
+            "Top-5": 45.1,
+            "Top-10": 53.4,
+            "Top-20": 58.8,
+          },
+        },
+        STMN: {
+          paper: {
+            mAP: 10,
+            "Top-1": 22.2,
+            "Top-5": 41.6,
+            "Top-10": 52.1,
+            "Top-20": 58.4,
+          },
+          ours: {
+            mAP: 15.4,
+            "Top-1": 32.8,
+            "Top-5": 46.4,
+            "Top-10": 54.3,
+            "Top-20": 59.7,
+          },
+        },
+        "Attn-CL": {
+          paper: {
+            mAP: 14.2,
+            "Top-1": 26.4,
+            "Top-5": 40.7,
+            "Top-10": 47.8,
+            "Top-20": 55.6,
+          },
+          ours: {
+            mAP: 14.8,
+            "Top-1": 32.3,
+            "Top-5": 53,
+            "Top-10": 59.1,
+            "Top-20": 67.1,
+          },
+        },
+        "Attn-CL+rerank": {
+          paper: {
+            mAP: 19.6,
+            "Top-1": 33.9,
+            "Top-5": 44.7,
+            "Top-10": 50.2,
+            "Top-20": 55.9,
+          },
+          ours: {
+            mAP: 19.9,
+            "Top-1": 40.9,
+            "Top-5": 57.2,
+            "Top-10": 61.7,
+            "Top-20": 66.1,
+          },
+        },
+        AP3D: {
+          paper: {
+            mAP: 12,
+            "Top-1": 24.1,
+            "Top-5": 37.6,
+            "Top-10": 43.4,
+            "Top-20": 50.9,
+          },
+          ours: {
+            mAP: 37.9,
+            "Top-1": 46.3,
+            "Top-5": 61.2,
+            "Top-10": 68.7,
+            "Top-20": 79.1,
+          },
+        },
+      };
+
+      let currentChart = null;
+      let selectedMethod = "AP3D";
+
+      function createButtons() {
+        const container = document.getElementById("methodButtons");
+        Object.keys(allData).forEach((method) => {
+          const btn = document.createElement("button");
+          btn.className =
+            "method-btn" + (method === selectedMethod ? " active" : "");
+          btn.textContent = method;
+          btn.onclick = () => selectMethod(method);
+          container.appendChild(btn);
+        });
+      }
+
+      function selectMethod(method) {
+        selectedMethod = method;
+        document.querySelectorAll(".method-btn").forEach((btn) => {
+          btn.classList.toggle("active", btn.textContent === method);
+        });
+        updateChart();
+      }
+
+      function updateChart() {
+        const data = allData[selectedMethod];
+        const metrics = ["mAP", "Top-1", "Top-5", "Top-10", "Top-20"];
+
+        const chartData = {
+          labels: metrics,
+          datasets: [
+            {
+              label: "Paper",
+              data: metrics.map((m) => data.paper[m]),
+              backgroundColor: "rgba(59, 130, 246, 0.85)",
+              borderColor: "rgb(59, 130, 246)",
+              borderWidth: 2,
+              borderRadius: 6,
+            },
+            {
+              label: "Ours",
+              data: metrics.map((m) => data.ours[m]),
+              backgroundColor: "rgba(249, 115, 22, 0.85)",
+              borderColor: "rgb(249, 115, 22)",
+              borderWidth: 2,
+              borderRadius: 6,
+            },
+          ],
+        };
+
+        if (currentChart) {
+          currentChart.destroy();
+        }
+
+        const ctx = document.getElementById("myChart").getContext("2d");
+        currentChart = new Chart(ctx, {
+          type: "bar",
+          data: chartData,
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: true,
+                position: "top",
+                labels: {
+                  font: { size: 15, weight: "bold" },
+                  padding: 15,
+                },
+              },
+              datalabels: {
+                anchor: "end",
+                align: "top",
+                formatter: function (value) {
+                  return value;
+                },
+                font: {
+                  weight: "bold",
+                  size: 12,
+                },
+                color: function (context) {
+                  return context.datasetIndex === 0 ? "#1e40af" : "#c2410c";
+                },
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 85,
+                title: {
+                  display: true,
+                  text: "Performance (%)",
+                  font: { size: 15, weight: "bold" },
+                },
+                ticks: {
+                  font: { size: 12 },
+                },
+              },
+              x: {
+                ticks: {
+                  font: { size: 13, weight: "600" },
+                },
+              },
+            },
+          },
+          plugins: [ChartDataLabels],
+        });
+      }
+
+      // Initialize
+      createButtons();
+      updateChart();
+    </script>
+  </body>
+</html>
