@@ -1,9 +1,8 @@
 import sys, os
 from pathlib import Path
-import json
 
-# ensure we can import config + package when running as: python scripts/parse_mevid.py
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add parent directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import argparse
 from config import ARTIFACTS, MEVID_ROOT
@@ -40,6 +39,8 @@ def main():
     parser.add_argument("--reid_model", type=str, help="Path to pretrained ReID model")
     parser.add_argument("--precompute", action="store_true", help="Precompute all ReID features")
     parser.add_argument("--no_diversity", action="store_true", help="Disable camera diversity")
+    parser.add_argument("--reid_refs", type=int, default=3, help="Number of top CLIP results to use as ReID references")
+    parser.add_argument("--reid_decay", type=float, default=0.5, help="Weight decay for lower-ranked references")
     
     args = parser.parse_args()
     
